@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">ScrollFullScreenSample</string>
+    <string name="header">Custom Header Sample</string>
+</resources>
