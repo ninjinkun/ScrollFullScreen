@@ -16,9 +16,11 @@ import scrollfullscreen.ScrollDetector;
 public class ListViewAdapter implements AbsListView.OnScrollListener {
     private ScrollDetector scrollDetector;
     private AbsListView.OnScrollListener proxyOnScrollListener;
-    private int previousFirstVisibleItem;
+    private static final int UNDEFINED_FIRST_VISIBLE_ITEM_VALUE = Integer.MIN_VALUE;
+    private int previousFirstVisibleItem = UNDEFINED_FIRST_VISIBLE_ITEM_VALUE;
     private static final int UNDEFINED_ROW_HEIGHT = Integer.MIN_VALUE;
     private int rowHeight = UNDEFINED_ROW_HEIGHT;
+    private int scrollState;
 
     private ListViewAdapter(ScrollDetector scrollDetector) {
         this.scrollDetector = scrollDetector;
@@ -43,6 +45,7 @@ public class ListViewAdapter implements AbsListView.OnScrollListener {
         if (proxyOnScrollListener != null) {
             proxyOnScrollListener.onScrollStateChanged(view, scrollState);
         }
+        this.scrollState = scrollState;
     }
 
     /**
@@ -72,8 +75,21 @@ public class ListViewAdapter implements AbsListView.OnScrollListener {
                 rowHeight = measuredRowHeight;
             }
         }
-        scrollDetector.onScrollChanged(0, firstVisibleItem * rowHeight, 0, previousFirstVisibleItem * rowHeight);
+        if (previousFirstVisibleItem != UNDEFINED_FIRST_VISIBLE_ITEM_VALUE) {
+            if (scrollState != AbsListView.OnScrollListener.SCROLL_STATE_IDLE) {
+                scrollDetector.onScrollChanged(0, firstVisibleItem * rowHeight, 0, previousFirstVisibleItem * rowHeight);
+            }
+        }
         previousFirstVisibleItem = firstVisibleItem;
+    }
+
+
+    /**
+     * Reset current states
+     */
+    public void reset() {
+        previousFirstVisibleItem = UNDEFINED_FIRST_VISIBLE_ITEM_VALUE;
+        scrollDetector.reset();
     }
 
     /**
