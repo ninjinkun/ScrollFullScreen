@@ -19,7 +19,8 @@ import scrollfullscreen.ScrollDetector;
 public class ScrollViewAdapter implements ViewTreeObserver.OnScrollChangedListener {
     private ScrollDetector scrollDetector;
     private WeakReference<View> scrollView;
-    private int previousY;
+    private static final int UNDEFINED_PREVIOUS_Y_VALUE = Integer.MIN_VALUE;
+    private int previousY = UNDEFINED_PREVIOUS_Y_VALUE;
 
     private ScrollViewAdapter(View scrollView, ScrollDetector scrollDetector) {
         if (!(scrollView instanceof ScrollView || scrollView instanceof WebView)) {
@@ -38,9 +39,19 @@ public class ScrollViewAdapter implements ViewTreeObserver.OnScrollChangedListen
         View view = scrollView.get();
         if (view != null) {
             int y = view.getScrollY();
-            scrollDetector.onScrollChanged(0, y, 0, previousY);
+            if (previousY != UNDEFINED_PREVIOUS_Y_VALUE) {
+                scrollDetector.onScrollChanged(0, y, 0, previousY);
+            }
             previousY = y;
         }
+    }
+
+    /**
+     * Reset current states
+     */
+    public void reset() {
+        previousY = UNDEFINED_PREVIOUS_Y_VALUE;
+        scrollDetector.reset();
     }
 
     /**
