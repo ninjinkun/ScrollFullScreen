@@ -48,8 +48,10 @@ webView.getViewTreeObserver().addOnScrollChangedListener(scrollViewAdapter); // 
 ```
 
 # Requrements
-
-- Android 4.0 or later
+- ListView
+    - Android 2.3 or later
+- ScrollView, WebView
+    - Android 4.0 or later
 
 # Download
 
