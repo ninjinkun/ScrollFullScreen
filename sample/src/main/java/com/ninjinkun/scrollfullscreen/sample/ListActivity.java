@@ -1,15 +1,16 @@
 package com.ninjinkun.scrollfullscreen.sample;
 
+import android.animation.Animator;
+import android.animation.ObjectAnimator;
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.view.animation.Animation;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -19,40 +20,22 @@ import java.util.List;
 import scrollfullscreen.ScrollDetector;
 import scrollfullscreen.ScrollDetector.OnFullScreenListener;
 import scrollfullscreen.ui.adapter.ListViewAdapter;
-import scrollfullscreen.ui.helper.ViewTopHelper;
 
-public class ListActivity extends ActionBarActivity {
+public class ListActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
+            getFragmentManager().beginTransaction()
                     .add(R.id.container, new ListFragment())
                     .commit();
         }
     }
 
-    public static class ListFragment extends android.support.v4.app.ListFragment implements OnFullScreenListener {
-        private ViewTopHelper viewTopHelper;
+    public static class ListFragment extends android.app.ListFragment implements OnFullScreenListener {
         private ArrayAdapter<String> adapter;
-        private boolean isActionBarAnimating;
-
-        private Animation.AnimationListener actionBarAnimationListener = new Animation.AnimationListener() {
-            @Override
-            public void onAnimationStart(Animation animation) {
-                isActionBarAnimating = true;
-            }
-
-            @Override
-            public void onAnimationEnd(Animation animation) {
-                isActionBarAnimating = false;
-            }
-
-            @Override
-            public void onAnimationRepeat(Animation animation) {
-            }
-        };
+        private Animator viewTopAnimator;
 
         public ListFragment() {
         }
@@ -82,25 +65,27 @@ public class ListActivity extends ActionBarActivity {
         }
 
         private void setupFullScreen() {
-            int actionBarHeight = 0;
-            // Calculate ActionBar height
-            TypedValue tv = new TypedValue();
-            if (getActivity().getTheme().resolveAttribute(R.attr.actionBarSize, tv, true))
-            {
-                actionBarHeight = TypedValue.complexToDimensionPixelSize(tv.data,getResources().getDisplayMetrics());
-            }
             getListView().getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                 @Override
                 public void onGlobalLayout() {
-                    viewTopHelper.setOffsetToActionBarShownPostision();
+                    getListView().setTranslationY(getActionBarHeight());
                 }
             });
 
-            viewTopHelper = new ViewTopHelper(getListView(), actionBarHeight, 0);
-
             ListView listView = getListView();
-            ScrollDetector detector = new ScrollDetector(this, actionBarHeight, 0);
+            ScrollDetector detector = new ScrollDetector(this, getActionBarHeight(), 0);
             listView.setOnScrollListener(new ListViewAdapter.Builder(detector).build());
+        }
+
+        private int getActionBarHeight() {
+            int actionBarHeight = 0;
+            // Calculate ActionBar height
+            TypedValue tv = new TypedValue();
+            if (getActivity().getTheme().resolveAttribute(android.R.attr.actionBarSize, tv, true))
+            {
+                actionBarHeight = TypedValue.complexToDimensionPixelSize(tv.data,getResources().getDisplayMetrics());
+            }
+            return actionBarHeight;
         }
 
         @Override
@@ -110,23 +95,27 @@ public class ListActivity extends ActionBarActivity {
         }
 
         @Override
-        public void onFullScreenFinished() {
-            if (!isActionBarAnimating) {
-                ((ActionBarActivity) getActivity()).getSupportActionBar().show();
+        public void onFullScreenStarted() {
+            if (viewTopAnimator == null || !viewTopAnimator.isRunning()) {
+                getActivity().getActionBar().hide();
 
-                int animTimeResourceID = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ? android.R.integer.config_shortAnimTime : android.R.integer.config_mediumAnimTime;
-                int animTime = getResources().getInteger(animTimeResourceID);
-                viewTopHelper.animateOffsetToActionBarShownPosition(actionBarAnimationListener, animTime);
+                // Adjust view's top
+                int animTime = getResources().getInteger(android.R.integer.config_mediumAnimTime);
+                viewTopAnimator = ObjectAnimator.ofFloat(getListView(), View.TRANSLATION_Y, 0).setDuration(animTime);
+                viewTopAnimator.start();
             }
         }
 
         @Override
-        public void onFullScreenStarted() {
-            if (!isActionBarAnimating) {
-                ((ActionBarActivity) getActivity()).getSupportActionBar().hide();
+        public void onFullScreenFinished() {
+            if (viewTopAnimator == null || !viewTopAnimator.isRunning()) {
+                getActivity().getActionBar().show();
 
-                int animTime = getResources().getInteger(android.R.integer.config_mediumAnimTime);
-                viewTopHelper.animateOffsetToActionBarHiddenPosition(actionBarAnimationListener, animTime);
+                // Adjust view's top
+                int animTimeResourceID = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ? android.R.integer.config_shortAnimTime : android.R.integer.config_mediumAnimTime;
+                int animTime = getResources().getInteger(animTimeResourceID);
+                viewTopAnimator = ObjectAnimator.ofFloat(getListView(), View.TRANSLATION_Y, getActionBarHeight()).setDuration(animTime);
+                viewTopAnimator.start();
             }
         }
     }
